@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controller Debugger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --panel: #0f0f1a;
+    --border: #1e1e35;
+    --accent: #00ffe1;
+    --accent2: #ff2d78;
+    --text: #c8c8e0;
+    --dim: #44445a;
+    --glow: 0 0 12px rgba(0,255,225,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  header {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  header span {
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+  }
+
+  #status-bar {
+    padding: 10px 32px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .status-dot.connected {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.disconnected {
+    background: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  #waiting {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 20px;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  #waiting .big-icon {
+    font-size: 5rem;
+    filter: grayscale(1) opacity(0.3);
+  }
+
+  #waiting p {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  #waiting .hint {
+    font-size: 0.72rem;
+    color: #333348;
+    max-width: 340px;
+  }
+
+  #dashboard {
+    display: none;
+    padding: 24px 32px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  #dashboard.visible { display: flex; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    flex: 1;
+    min-width: 280px;
+  }
+
+  .panel-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Controller info */
+  #ctrl-id {
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+    word-break: break-all;
+  }
+  #ctrl-meta {
+    font-size: 0.7rem;
+    color: var(--dim);
+    line-height: 2;
+  }
+  #ctrl-meta span { color: var(--text); }
+
+  /* Buttons grid */
+  #buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+  }
+
+  .btn-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn-visual {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: var(--dim);
+    transition: all 0.05s;
+    position: relative;
+  }
+
+  .btn-visual.pressed {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 14px var(--accent);
+  }
+
+  .btn-value {
+    font-size: 0.55rem;
+    color: var(--dim);
+    transition: color 0.1s;
+  }
+  .btn-cell.pressed .btn-value { color: var(--accent); }
+
+  .btn-label {
+    font-size: 0.55rem;
+    color: #333348;
+    text-align: center;
+  }
+
+  /* Axes */
+  .axis-row {
+    margin-bottom: 14px;
+  }
+  .axis-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    margin-bottom: 6px;
+    color: var(--dim);
+  }
+  .axis-header .val { color: var(--accent); }
+
+  .axis-track {
+    height: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .axis-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--accent);
+    box-shadow: var(--glow);
+    transition: left 0.03s, width 0.03s;
+    border-radius: 3px;
+  }
+
+  /* Thumbstick visualizer */
+  .stick-pair {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stick-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stick-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .stick-canvas {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stick-canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to right, transparent calc(50% - 0.5px), var(--border) calc(50% - 0.5px), var(--border) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+      linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--border) calc(50% - 0.5px), var(--border) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  }
+
+  .stick-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: var(--glow);
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    transition: top 0.03s, left 0.03s;
+  }
+
+  /* Event log */
+  #event-log {
+    font-size: 0.7rem;
+    line-height: 1.8;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--dim);
+  }
+  #event-log::-webkit-scrollbar { width: 4px; }
+  #event-log::-webkit-scrollbar-track { background: var(--bg); }
+  #event-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .log-entry { display: flex; gap: 10px; }
+  .log-time { color: #333348; min-width: 70px; }
+  .log-msg { color: var(--text); }
+  .log-msg.press { color: var(--accent); }
+  .log-msg.release { color: var(--dim); }
+  .log-msg.connect { color: #44ff88; }
+  .log-msg.disconnect { color: var(--accent2); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    header { padding: 16px 16px 12px; }
+    #dashboard { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎮 Ctrl/Debug</h1>
+  <span>GAMEPAD INSPECTOR v1.0</span>
+</header>
+
+<div id="status-bar">
+  <div class="status-dot" id="dot"></div>
+  <span id="status-text">WAITING FOR CONTROLLER — press any button after connecting</span>
+</div>
+
+<div id="waiting">
+  <div class="big-icon">🎮</div>
+  <p>Connect your controller via Bluetooth<br>then press any button</p>
+  <p class="hint">The browser only detects gamepads after you interact with them. Press any button once connected.</p>
+</div>
+
+<div id="dashboard">
+  <!-- Info -->
+  <div class="panel" style="flex: 2; min-width: 300px;">
+    <div class="panel-title">Controller Info</div>
+    <div id="ctrl-id">—</div>
+    <div id="ctrl-meta"></div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="panel" style="flex: 3; min-width: 340px;">
+    <div class="panel-title">Buttons</div>
+    <div id="buttons-grid"></div>
+  </div>
+
+  <!-- Axes -->
+  <div class="panel" style="flex: 2; min-width: 280px;">
+    <div class="panel-title">Axes (Raw Values)</div>
+    <div id="axes-list"></div>
+    <div class="stick-pair" id="stick-pair"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="panel" style="flex: 5; min-width: 300px;">
+    <div class="panel-title">Event Log</div>
+    <div id="event-log"></div>
+  </div>
+</div>
+
+<script>
+  // ─── State ────────────────────────────────────────────────────────────────
+  let gamepadIndex = null;
+  let prevButtons = [];
+  let rafId = null;
+
+  const BUTTON_LABELS = [
+    'A/✕','B/○','X/□','Y/△',
+    'LB','RB','LT','RT',
+    'Sel','Start',
+    'L3','R3',
+    'Up','Down','Left','Right',
+    'Home'
+  ];
+
+  // ─── DOM refs ──────────────────────────────────────────────────────────────
+  const dot         = document.getElementById('dot');
+  const statusText  = document.getElementById('status-text');
+  const waiting     = document.getElementById('waiting');
+  const dashboard   = document.getElementById('dashboard');
+  const ctrlId      = document.getElementById('ctrl-id');
+  const ctrlMeta    = document.getElementById('ctrl-meta');
+  const buttonsGrid = document.getElementById('buttons-grid');
+  const axesList    = document.getElementById('axes-list');
+  const stickPair   = document.getElementById('stick-pair');
+  const eventLog    = document.getElementById('event-log');
+
+  // ─── Logging ───────────────────────────────────────────────────────────────
+  function log(msg, type = '') {
+    const now = new Date();
+    const t = now.toLocaleTimeString('en', { hour12: false }) + '.' +
+              String(now.getMilliseconds()).padStart(3,'0');
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    el.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+    eventLog.prepend(el);
+    // Keep max 60 entries
+    while (eventLog.children.length > 60) eventLog.removeChild(eventLog.lastChild);
+  }
+
+  // ─── Build UI for a gamepad ────────────────────────────────────────────────
+  function buildUI(gp) {
+    // Info panel
+    ctrlId.textContent = gp.id;
+    ctrlMeta.innerHTML = `
+      Buttons: <span>${gp.buttons.length}</span> &nbsp;|&nbsp;
+      Axes: <span>${gp.axes.length}</span> &nbsp;|&nbsp;
+      Mapping: <span>${gp.mapping || 'none'}</span> &nbsp;|&nbsp;
+      Connected: <span>${gp.connected}</span>
+    `;
+
+    // Buttons grid
+    buttonsGrid.innerHTML = '';
+    gp.buttons.forEach((_, i) => {
+      const label = BUTTON_LABELS[i] || `B${i}`;
+      const cell = document.createElement('div');
+      cell.className = 'btn-cell';
+      cell.id = `btn-cell-${i}`;
+      cell.innerHTML = `
+        <div class="btn-visual" id="btn-${i}">${i}</div>
+        <div class="btn-value" id="btnv-${i}">0.00</div>
+        <div class="btn-label">${label}</div>
+      `;
+      buttonsGrid.appendChild(cell);
+    });
+
+    // Axes
+    axesList.innerHTML = '';
+    gp.axes.forEach((_, i) => {
+      const row = document.createElement('div');
+      row.className = 'axis-row';
+      row.innerHTML = `
+        <div class="axis-header">
+          <span>AXIS ${i} ${i === 0 ? '(L→)' : i === 1 ? '(L↓)' : i === 2 ? '(R→)' : i === 3 ? '(R↓)' : ''}</span>
+          <span class="val" id="axval-${i}">0.000</span>
+        </div>
+        <div class="axis-track">
+          <div class="axis-fill" id="axfill-${i}" style="left:50%;width:0%"></div>
+        </div>
+      `;
+      axesList.appendChild(row);
+    });
+
+    // Thumbstick visuals (if 4+ axes)
+    stickPair.innerHTML = '';
+    if (gp.axes.length >= 2) {
+      ['LEFT', 'RIGHT'].forEach((name, si) => {
+        if (gp.axes.length < si * 2 + 2) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'stick-wrap';
+        wrap.innerHTML = `
+          <div class="stick-label">${name} STICK</div>
+          <div class="stick-canvas">
+            <div class="stick-dot" id="stick-dot-${si}"></div>
+          </div>
+        `;
+        stickPair.appendChild(wrap);
+      });
+    }
+
+    prevButtons = gp.buttons.map(b => b.pressed);
+  }
+
+  // ─── Poll loop ─────────────────────────────────────────────────────────────
+  function poll() {
+    const gamepads = navigator.getGamepads();
+    const gp = gamepads[gamepadIndex];
+
+    if (!gp) { rafId = requestAnimationFrame(poll); return; }
+
+    // Update buttons
+    gp.buttons.forEach((btn, i) => {
+      const visual = document.getElementById(`btn-${i}`);
+      const valEl  = document.getElementById(`btnv-${i}`);
+      const cell   = document.getElementById(`btn-cell-${i}`);
+      if (!visual) return;
+
+      const isPressed = btn.pressed;
+      visual.classList.toggle('pressed', isPressed);
+      cell.classList.toggle('pressed', isPressed);
+      if (valEl) valEl.textContent = btn.value.toFixed(2);
+
+      // Log on state change
+      if (isPressed !== prevButtons[i]) {
+        const label = BUTTON_LABELS[i] || `Button ${i}`;
+        if (isPressed) {
+          log(`▶ ${label} pressed  (value: ${btn.value.toFixed(3)})`, 'press');
+        } else {
+          log(`◀ ${label} released`, 'release');
+        }
+        prevButtons[i] = isPressed;
+      }
+    });
+
+    // Update axes
+    gp.axes.forEach((val, i) => {
+      const valEl  = document.getElementById(`axval-${i}`);
+      const fillEl = document.getElementById(`axfill-${i}`);
+      if (!valEl) return;
+      valEl.textContent = val.toFixed(3);
+
+      // Track: center is 50%, range is -1 to +1
+      const pct = (val + 1) / 2 * 100; // 0–100%
+      const center = 50;
+      if (val >= 0) {
+        fillEl.style.left = center + '%';
+        fillEl.style.width = ((pct - center)) + '%';
+      } else {
+        fillEl.style.left = pct + '%';
+        fillEl.style.width = (center - pct) + '%';
+      }
+    });
+
+    // Update stick visuals
+    if (gp.axes.length >= 2) {
+      const updateStick = (si, ax, ay) => {
+        const dot = document.getElementById(`stick-dot-${si}`);
+        if (!dot) return;
+        // Map -1..1 to 5%..95%
+        const x = ((ax + 1) / 2) * 90 + 5;
+        const y = ((ay + 1) / 2) * 90 + 5;
+        dot.style.left = x + '%';
+        dot.style.top  = y + '%';
+      };
+      updateStick(0, gp.axes[0], gp.axes[1]);
+      if (gp.axes.length >= 4) updateStick(1, gp.axes[2], gp.axes[3]);
+    }
+
+    rafId = requestAnimationFrame(poll);
+  }
+
+  // ─── Connect / Disconnect events ───────────────────────────────────────────
+  window.addEventListener('gamepadconnected', (e) => {
+    gamepadIndex = e.gamepad.index;
+
+    dot.className = 'status-dot connected';
+    statusText.textContent = `CONNECTED: ${e.gamepad.id.slice(0, 60)}`;
+
+    waiting.style.display = 'none';
+    dashboard.classList.add('visible');
+
+    buildUI(e.gamepad);
+    log(`Controller connected — ${e.gamepad.id}`, 'connect');
+    log(`${e.gamepad.buttons.length} buttons | ${e.gamepad.axes.length} axes | mapping: ${e.gamepad.mapping || 'none'}`, 'connect');
+
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(poll);
+  });
+
+  window.addEventListener('gamepaddisconnected', (e) => {
+    if (e.gamepad.index !== gamepadIndex) return;
+
+    gamepadIndex = null;
+    cancelAnimationFrame(rafId);
+
+    dot.className = 'status-dot disconnected';
+    statusText.textContent = 'CONTROLLER DISCONNECTED';
+
+    log('Controller disconnected', 'disconnect');
+    dashboard.classList.remove('visible');
+    waiting.style.display = 'flex';
+  });
+
+  // Initial log
+  log('Debugger ready — waiting for gamepad...', '');
+</script>
+</body>
+</html>
