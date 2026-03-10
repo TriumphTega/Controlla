@@ -489,76 +489,76 @@ canvas.stick-canvas {
 <body>
 
 <header>
-  <div className=ogo>
+  <div class="logo">
     <h1>CONTROLLA</h1>
-    <span className=ss="vers>Debug v2.0</span>
+    <span class="version">Debug v2.0</span>
   </div>
-  <div className=tat id="pill">
-    <div className=tatus-dot></div>
+  <div class="status-pill disconnected" id="pill">
+    <div class="status-dot"></div>
     <span id="pill-text">Waiting...</span>
   </div>
 </header>
 
 <div id="waiting">
-  <div className=ttt>🎮</div>
+  <div class="wait-icon">🎮</div>
   <h2>No Controller Detected</h2>
   <p>Connect via Bluetooth, then press any button.<br>The browser activates it on first interaction.</p>
 </div>
 
 <div id="dashboard">
-  <div className=ddd>
+  <div class="grid">
 
     <!-- Info -->
-    <div className=einfo-pan le>
-      <div className=el-labe>Controller Info</div>
+    <div class="panel info-panel">
+      <div class="panel-label">Controller Info</div>
       <div id="ctrl-id">—</div>
-      <div className=ass="meta>
-        <div className=ass="meta><span className=lass="k">Buttons</span><span className=lass="v" id="m-btns">—</span></div>
-        <div className=ass="meta><span className=lass="k">Axes</span><span className=lass="v" id="m-axes">—</span></div>
-        <div className=ass="meta><span className=lass="k">Mapping</span><span className=lass="v" id="m-map">—</span></div>
-        <div className=ass="meta><span className=lass="k">Vendor</span><span className=lass="v" id="m-vendor">—</span></div>
+      <div class="meta-grid">
+        <div class="meta-item"><span class="k">Buttons</span><span class="v" id="m-btns">—</span></div>
+        <div class="meta-item"><span class="k">Axes</span><span class="v" id="m-axes">—</span></div>
+        <div class="meta-item"><span class="k">Mapping</span><span class="v" id="m-map">—</span></div>
+        <div class="meta-item"><span class="k">Vendor</span><span class="v" id="m-vendor">—</span></div>
       </div>
     </div>
 
     <!-- ViGem status -->
-    <div className=el vigem-pane>
-      <div className=el-labe>XInput Status</div>
-      <div className=eee>
-        <div className=eee>
-          <span className="tag">Protocol</span>
-          <span className=ggg>DirectInput</span>
+    <div class="panel vigem-panel">
+      <div class="panel-label">XInput Status</div>
+      <div class="vigem-status">
+        <div class="vigem-row">
+          <span class="tag">Protocol</span>
+          <span class="badge info">DirectInput</span>
         </div>
-        <div className=eee>
-          <span className="tag">ViGEmBus</span>
-          <span className=ggg id="vigem-badge">Install Pending</span>
+        <div class="vigem-row">
+          <span class="tag">ViGEmBus</span>
+          <span class="badge warn" id="vigem-badge">Install Pending</span>
         </div>
-        <div className=eee>
-          <span className="tag">Game Compat</span>
-          <span className=ggg id="compat-badge">Limited</span>
+        <div class="vigem-row">
+          <span class="tag">Game Compat</span>
+          <span class="badge warn" id="compat-badge">Limited</span>
         </div>
       </div>
     </div>
 
     <!-- Buttons -->
-    <div className=ebuttons-pan le>
-      <div className=el-labe>Buttons</div>
+    <div class="panel buttons-panel">
+      <div class="panel-label">Buttons</div>
       <div id="buttons-grid"></div>
     </div>
 
     <!-- Axes -->
-    <div className=eaxes-pan le>
-      <div className=el-labe>All Axes</div>
+    <div class="panel axes-panel">
+      <div class="panel-label">All Axes</div>
       <div id="axes-list"></div>
     </div>
 
     <!-- Sticks -->
-    <div className=el sticks-pane id="sticks-container">
-      <div className=el-labe style="width:100%">Joystick Tracking</div>
+    <div class="panel sticks-panel" id="sticks-container">
+      <div class="panel-label" style="width:100%">Joystick Tracking</div>
     </div>
 
     <!-- Log -->
-    <div className=el log-pane>
-      <div className=el-labe>Event Log</div>
+    <div class="panel log-panel">
+      <div class="panel-label">Event Log</div>
       <div id="event-log"></div>
     </div>
 
@@ -603,8 +603,8 @@ function log(msg, type='') {
   const d = new Date();
   const t = d.toLocaleTimeString('en',{hour12:false}) + '.' + String(d.getMilliseconds()).padStart(3,'0');
   const el = document.createElement('div');
-  el.className====;
-  el.innerHTML = `<span className=--->${t}</span><span className=--->${msg}</span>`;
+  el.className = 'log-line';
+  el.innerHTML = `<span class="log-t">${t}</span><span class="log-m ${type}">${msg}</span>`;
   eventLog.prepend(el);
   while (eventLog.children.length > 80) eventLog.removeChild(eventLog.lastChild);
 }
@@ -626,19 +626,19 @@ function buildUI(gp) {
     const C = 19; // radius
     const circ = 2 * Math.PI * C;
     const cell = document.createElement('div');
-    cell.className====;
+    cell.className = 'btn-cell';
     cell.id = `bc-${i}`;
     cell.innerHTML = `
-      <div className=--->
+      <div class="btn-ring">
         <svg viewBox="0 0 44 44">
-          <circle className=className=c lass="tracc22" cy="22" r="${C}"/>
-          <circle className=lass="fill id="bfill-${i}" cx="22" cy="22" r="${C}"
+          <circle class="track" cx="22" cy="22" r="${C}"/>
+          <circle class="fill" id="bfill-${i}" cx="22" cy="22" r="${C}"
             style="stroke-dasharray:${circ.toFixed(1)};stroke-dashoffset:${circ.toFixed(1)}"/>
         </svg>
-        <div className=--- id="bi-${i}">${i}</div>
+        <div class="btn-inner" id="bi-${i}">${i}</div>
       </div>
-      <div className=--- id="bv-${i}">0.00</div>
-      <div className=--->${name}</div>`;
+      <div class="btn-val" id="bv-${i}">0.00</div>
+      <div class="btn-name">${name}</div>`;
     btnGrid.appendChild(cell);
   });
 
@@ -647,16 +647,16 @@ function buildUI(gp) {
   gp.axes.forEach((_, i) => {
     const name = AXIS_NAMES[i] || `Axis ${i}`;
     const row = document.createElement('div');
-    row.className====;
+    row.className = 'axis-row';
     row.innerHTML = `
-      <div className=ss="axis>
-        <span className=ss="axis>${name}</span>
-        <span className=ss="axis id="av-${i}">0.000</span>
+      <div class="axis-header">
+        <span class="axis-name">${name}</span>
+        <span class="axis-val" id="av-${i}">0.000</span>
       </div>
-      <div className=ss="axis>
-        <div className=ss="axis></div>
-        <div className=ss="axis id="aneg-${i}"></div>
-        <div className=ss="axis-pos id="apos-${i}"></div>
+      <div class="axis-track">
+        <div class="axis-center"></div>
+        <div class="axis-neg" id="aneg-${i}"></div>
+        <div class="axis-pos" id="apos-${i}"></div>
       </div>`;
     axesList.appendChild(row);
   });
@@ -673,15 +673,15 @@ function buildUI(gp) {
   for (let s = 0; s < Math.min(stickCount, 5); s++) {
     stickTrails.push({ pts: [] });
     const wrap = document.createElement('div');
-    wrap.className====;
+    wrap.className = 'stick-wrap';
     wrap.innerHTML = `
-      <div className=class="stic>${stickLabels[s] || 'STICK ' + s}</div>
-      <div className=class="stick-c>
-        <canvas className=className=className=class="stick-csc width="120" height="120"></canvas>
+      <div class="stick-title">${stickLabels[s] || 'STICK ' + s}</div>
+      <div class="stick-canvas-wrap">
+        <canvas class="stick-canvas" id="sc-${s}" width="120" height="120"></canvas>
       </div>
-      <div className=class="stick-c>
-        <div className=className=className=class="stick-c>0.000</span></div>
-        <div className=className=className=class="stick-c>0.000</span></div>
+      <div class="stick-coords">
+        <div class="stick-coord">X <span id="sx-${s}">0.000</span></div>
+        <div class="stick-coord">Y <span id="sy-${s}">0.000</span></div>
       </div>`;
     sticksWrap.appendChild(wrap);
   }
@@ -850,7 +850,7 @@ function poll() {
 window.addEventListener('gamepadconnected', e => {
   gpIndex = e.gamepad.index;
 
-  pill.className====;
+  pill.className = 'status-pill connected';
   pillText.textContent = 'Connected';
   waiting.style.display = 'none';
   dashboard.classList.add('visible');
@@ -861,9 +861,9 @@ window.addEventListener('gamepadconnected', e => {
 
   // Update ViGem badge now that we see real data
   vigemBadge.textContent = 'Detected';
-  vigemBadge.className====;
+  vigemBadge.className = 'badge ok';
   compatBadge.textContent = 'Post-ViGem';
-  compatBadge.className====;
+  compatBadge.className = 'badge info';
 
   if (rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(poll);
@@ -874,16 +874,16 @@ window.addEventListener('gamepaddisconnected', e => {
   gpIndex = null;
   cancelAnimationFrame(rafId);
 
-  pill.className====;
+  pill.className = 'status-pill disconnected';
   pillText.textContent = 'Disconnected';
   dashboard.classList.remove('visible');
   waiting.style.display = 'flex';
   log('Controller disconnected', 'disconnect');
 
   vigemBadge.textContent = 'Install Pending';
-  vigemBadge.className====;
+  vigemBadge.className = 'badge warn';
   compatBadge.textContent = 'Limited';
-  compatBadge.className====;
+  compatBadge.className = 'badge warn';
 });
 
 log('Controlla ready — awaiting gamepad...', '');
